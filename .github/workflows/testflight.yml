@@ -50,8 +50,31 @@ jobs:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
           mkdir -p "$RUNNER_TEMP/keys"
-          printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8"
-          echo "ASC_KEY_PATH=$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" >> "$GITHUB_ENV"
+          export KEY_PATH="$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8"
+          # Rebuild a clean key file however it was pasted: Windows line endings, lost line
+          # breaks, missing BEGIN/END lines, or a base64 copy of the whole file all work.
+          python3 - <<'PY'
+          import os, re, base64
+          raw = os.environ.get('ASC_KEY_P8', '').replace('\r', '').strip()
+          if 'BEGIN' not in raw:
+              try:
+                  dec = base64.b64decode(re.sub(r'\s+', '', raw)).decode('utf-8', 'ignore')
+                  if 'BEGIN' in dec:
+                      raw = dec.strip()
+              except Exception:
+                  pass
+          body = re.sub(r'-----(BEGIN|END)[A-Z ]*-----', '', raw)
+          body = re.sub(r'[^A-Za-z0-9+/=]', '', body)
+          pem = '-----BEGIN PRIVATE KEY-----\n' + '\n'.join(body[i:i+64] for i in range(0, len(body), 64)) + '\n-----END PRIVATE KEY-----\n'
+          with open(os.environ['KEY_PATH'], 'w') as f:
+              f.write(pem)
+          print(f'Key body is {len(body)} characters (a valid App Store Connect key is about 184).')
+          PY
+          if ! openssl pkey -in "$KEY_PATH" -noout 2>/dev/null; then
+            echo "::error::The ASC_KEY_P8 secret isn't a valid private key. Open AuthKey_${ASC_KEY_ID}.p8 in a text editor, copy all of it, and paste it into the ASC_KEY_P8 secret again (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Work out version and build number
         run: |
