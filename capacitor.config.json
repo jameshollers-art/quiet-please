@@ -1,0 +1,21 @@
+{
+  "appId": "com.jimhollers.quietplease",
+  "appName": "Quiet, Please",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#140e09",
+    "scrollEnabled": false
+  },
+  "plugins": {
+    "CapacitorUpdater": {
+      "autoUpdate": false,
+      "resetWhenUpdate": true,
+      "autoDeletePrevious": true,
+      "appReadyTimeout": 10000,
+      "statsUrl": "",
+      "updateUrl": "",
+      "channelUrl": ""
+    }
+  }
+}

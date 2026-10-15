@@ -1,0 +1,50 @@
+# Publishes the game in www/ as an over-the-air update.
+# Runs on every push to main that changes www/, or by hand from the Actions tab.
+# Installed apps download it in the background and switch to it between shifts.
+name: Publish game update
+
+on:
+  push:
+    branches: [main]
+    paths: ['www/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package the update
+        run: |
+          OWNER="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          REPO='${{ github.event.repository.name }}'
+          BASE="https://${OWNER}.github.io/${REPO}"
+          VERSION="$(node -p "require('./package.json').version")-ota.${{ github.run_number }}"
+          mkdir -p site
+          (cd www && zip -qr "../site/game-${VERSION}.zip" .)
+          cat > site/latest.json <<JSON
+          {"version":"${VERSION}","url":"${BASE}/game-${VERSION}.zip","published":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+          JSON
+          echo "### Published game update ${VERSION}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Manifest: ${BASE}/latest.json" >> "$GITHUB_STEP_SUMMARY"
+          echo "Testers get it the next time they open the app." >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
