@@ -1,4 +1,5 @@
-# Publishes the game in www/ as an over-the-air update.
+# Publishes the game in www/ as an over-the-air update, plus the support and
+# privacy pages in pages/ (the App Store listing links to them).
 # Runs on every push to main that changes www/, or by hand from the Actions tab.
 # Installed apps download it in the background and switch to it between shifts.
 name: Publish game update
@@ -6,7 +7,7 @@ name: Publish game update
 on:
   push:
     branches: [main]
-    paths: ['www/**']
+    paths: ['www/**', 'pages/**']
   workflow_dispatch:
 
 permissions:
@@ -34,6 +35,7 @@ jobs:
           BASE="https://${OWNER}.github.io/${REPO}"
           VERSION="$(node -p "require('./package.json').version")-ota.${{ github.run_number }}"
           mkdir -p site
+          cp pages/* site/ && cp pages/support.html site/index.html
           (cd www && zip -qr "../site/game-${VERSION}.zip" .)
           cat > site/latest.json <<JSON
           {"version":"${VERSION}","url":"${BASE}/game-${VERSION}.zip","published":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
