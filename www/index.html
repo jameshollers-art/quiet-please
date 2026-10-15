@@ -94,8 +94,8 @@ body.pad .prompt kbd{border-radius:50%;background:#3f8a5c;color:#fff}
 .choice .hint{opacity:.75;font-size:.85em}
 .btn:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .small{font-size:12.5px;color:#6b5840}
-.rows{display:grid;grid-template-columns:1fr auto;column-gap:16px;line-height:28px;font-size:15px;margin-bottom:8px;font-variant-numeric:tabular-nums}
-.rows span:nth-child(even){font-family:var(--font-stamp);text-align:right}
+.rows{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:16px;line-height:28px;font-size:15px;margin-bottom:8px;font-variant-numeric:tabular-nums}
+.rows span:nth-child(even){font-family:var(--font-stamp);text-align:right;max-width:14em}
 .grade{font-family:var(--font-stamp);display:inline-block;border:3px solid var(--stamp);color:var(--stamp);padding:4px 10px;transform:rotate(-4deg);font-size:20px;margin:4px 0 10px;border-radius:4px}
 .mute{margin-left:auto;pointer-events:auto;font:800 12px var(--font-body);color:var(--hud-fg);cursor:pointer}
 .musicbtn{pointer-events:auto;font:800 12px var(--font-body);color:var(--hud-fg);cursor:pointer}
