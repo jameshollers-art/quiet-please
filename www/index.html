@@ -108,6 +108,19 @@ body.pad .prompt kbd{border-radius:50%;background:#3f8a5c;color:#fff}
 .gfx button[aria-pressed="true"]{background:var(--card);color:var(--ink)}
 .gfx button:focus-visible{outline:2px solid var(--card);outline-offset:1px}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
+/* Phones held sideways: short screens get a wider, denser card so it fits without scrolling. */
+@media (max-height:520px) and (orientation:landscape){
+.overlay{padding:8px}
+.card{width:min(100%,760px);padding:12px 22px 10px;background-image:repeating-linear-gradient(to bottom,transparent 0 23px,var(--card-line) 23px 24px);background-position:0 44px}
+.card::before{display:none}
+.card h1{font-size:30px}
+.card p,.card ul{line-height:24px;margin-bottom:6px}
+.btn{margin:4px 0 8px}
+.grade{font-size:17px;margin:2px 0 6px}
+.rows{grid-template-columns:1fr auto 1fr auto;line-height:24px;column-gap:18px}
+.shop,.sortlist{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.shop .cat{grid-column:1/-1}
+}
 </style>
 
 <div id="game"></div>
