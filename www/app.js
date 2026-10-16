@@ -28,6 +28,61 @@
 
   if (!isApp) { showVersion('Web version'); return; }
 
+  // ---- Game Center: achievements and leaderboards ----
+  // Achievement IDs in App Store Connect are "qp.ach.<game id>"; leaderboards below.
+  const GC = (Cap.Plugins && Cap.Plugins.GameCenter) || (Cap.registerPlugin && Cap.registerPlugin('GameCenter'));
+  const LEADERBOARDS = { rating: 'qp.lb.bestrating', shelved: 'qp.lb.booksshelved' };
+  let gcReady = false, gcFirst = true, gcBusy = false;
+  const gcReported = new Set(), gcScores = {};
+  function readSave() { try { return JSON.parse(localStorage.getItem('qp-save-v1')) || {}; } catch (e) { return {}; } }
+  async function gcSync() {
+    if (!gcReady || gcBusy) return;
+    gcBusy = true;
+    try {
+      const save = readSave();
+      const ids = Object.keys(save.ach || {}).filter(id => !gcReported.has(id));
+      if (ids.length) {
+        // Catch-up on first sign-in is silent; new unlocks after that show Apple's banner.
+        await GC.reportAchievements({ ids: ids.map(id => 'qp.ach.' + id), banner: !gcFirst });
+        ids.forEach(id => gcReported.add(id));
+      }
+      gcFirst = false;
+      const best = Math.max(0, ...Object.values(save.best || {}).map(Number).filter(n => !isNaN(n)));
+      const shelved = (save.tot && save.tot.shelved) || 0;
+      for (const [key, value] of [['rating', best], ['shelved', shelved]]) {
+        if (value > 0 && gcScores[key] !== value) {
+          await GC.submitScore({ leaderboard: LEADERBOARDS[key], score: Math.round(value) });
+          gcScores[key] = value;
+        }
+      }
+    } catch (e) {
+      // Offline or Game Center unavailable: try again after the next shift.
+    } finally {
+      gcBusy = false;
+    }
+  }
+  function addGameCenterButton() {
+    const row = $('startOv') && $('startOv').querySelector('.btnrow');
+    if (!row || $('gcBtn')) return;
+    const b = document.createElement('button');
+    b.className = 'btn ghost'; b.id = 'gcBtn'; b.type = 'button'; b.textContent = 'Game Center';
+    b.addEventListener('click', () => { GC.showDashboard().catch(() => {}); });
+    row.appendChild(b);
+  }
+  if (GC) {
+    GC.signIn().then(r => {
+      gcReady = !!(r && r.authenticated);
+      if (gcReady) { addGameCenterButton(); gcSync(); }
+    }).catch(() => {});
+    // Report after every shift (the shift report or day card is showing).
+    let wasBetween = false;
+    setInterval(() => {
+      const between = ($('endOv') && !$('endOv').hidden) || ($('startOv') && !$('startOv').hidden);
+      if (between && !wasBetween) gcSync();
+      wasBetween = between;
+    }, 1500);
+  }
+
   const Updater = (Cap.Plugins && Cap.Plugins.CapacitorUpdater) || (Cap.registerPlugin && Cap.registerPlugin('CapacitorUpdater'));
   if (!Updater) { showVersion('App version'); return; }
 
