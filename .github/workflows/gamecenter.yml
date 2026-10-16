@@ -1,0 +1,47 @@
+# Creates (or fills in) the game's Game Center achievements and leaderboards in
+# App Store Connect, using the same API key as the TestFlight build.
+name: Game Center setup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      APP_ID: '6822991839'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'pyjwt[crypto]'
+      - name: Save the App Store Connect key
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys"
+          export KEY_PATH="$RUNNER_TEMP/keys/AuthKey.p8"
+          python3 - <<'PY'
+          import os, re, base64
+          raw = os.environ.get('ASC_KEY_P8', '').replace('\r', '').strip()
+          if 'BEGIN' not in raw:
+              try:
+                  dec = base64.b64decode(re.sub(r'\s+', '', raw)).decode('utf-8', 'ignore')
+                  if 'BEGIN' in dec:
+                      raw = dec.strip()
+              except Exception:
+                  pass
+          body = re.sub(r'-----(BEGIN|END)[A-Z ]*-----', '', raw)
+          body = re.sub(r'[^A-Za-z0-9+/=]', '', body)
+          pem = '-----BEGIN PRIVATE KEY-----\n' + '\n'.join(body[i:i+64] for i in range(0, len(body), 64)) + '\n-----END PRIVATE KEY-----\n'
+          open(os.environ['KEY_PATH'], 'w').write(pem)
+          PY
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+      - name: Create achievements and leaderboards
+        run: python3 scripts/gamecenter_setup.py
+      - name: Remove the key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"
