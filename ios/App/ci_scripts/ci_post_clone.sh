@@ -8,3 +8,6 @@ cd "$CI_PRIMARY_REPOSITORY_PATH"
 npm ci
 npm run build --if-present      # builds www/ (and syncs iOS in apps where build includes it)
 npx cap sync ios                # copies www/ into the iOS app and resolves plugin packages
+# Capacitor's iOS code comes from CocoaPods (from node_modules, not a GitHub package), so
+# Xcode Cloud never needs access to another repo. cap sync normally runs this; make sure.
+cd ios/App && pod install
