@@ -57,7 +57,10 @@ class MainViewController: CAPBridgeViewController {
                 return
             }
             let text = (result as? String) ?? "no result"
-            self?.showDiagnostics("\(text)\n\n\(native)")
+            let looksFine = text.contains("\"startShown\":true") && text.contains("\"errors\":[]")
+            if !looksFine {
+                self?.showDiagnostics("\(text)\n\n\(native)")
+            }
         }
     }
 
