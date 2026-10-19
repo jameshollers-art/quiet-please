@@ -273,7 +273,22 @@ function segHits(ax,az,bx,bz,b,p){
 }
 const NODES=[];
 OBST.forEach(b=>{const q=PAD+0.12;[[b.minX-q,b.minZ-q],[b.maxX+q,b.minZ-q],[b.minX-q,b.maxZ+q],[b.maxX+q,b.maxZ+q]].forEach(c=>{if(validPt(c[0],c[1],PAD))NODES.push({x:c[0],z:c[1]});});});
+// Nearest walkable spot just outside every padded obstacle (used when someone stands at a table's edge).
+function escapePt(x,z){
+  for(let r=0.08;r<=0.9;r+=0.08)for(let k=0;k<16;k++){const a=k*Math.PI/8,ex=x+Math.sin(a)*r,ez=z+Math.cos(a)*r;if(validPt(ex,ez,PAD+0.01))return {x:ex,z:ez};}
+  return null;
+}
 function plan(sx,sz,gx,gz){
+  // Standing inside an obstacle's padding but not on it (common at a table's edge): step out first,
+  // instead of ignoring that obstacle for the whole trip and walking straight through it.
+  let pre=null;
+  const near=OBST.filter(b=>inBox(sx,sz,b,PAD));
+  if(near.length&&!near.some(b=>inBox(sx,sz,b,0))){const e=escapePt(sx,sz);if(e){pre=e;sx=e.x;sz=e.z;}}
+  const path=planFrom(sx,sz,gx,gz);
+  if(pre)path.unshift(pre);
+  return path;
+}
+function planFrom(sx,sz,gx,gz){
   const ign=OBST.filter(b=>inBox(sx,sz,b,PAD));
   const clear=(a,b)=>OBST.every(o=>ign.includes(o)||!segHits(a.x,a.z,b.x,b.z,o,PAD));
   const S={x:sx,z:sz},G={x:gx,z:gz};
