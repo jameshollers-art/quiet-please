@@ -1515,7 +1515,13 @@ document.querySelectorAll('.gfx button').forEach(b=>b.addEventListener('click',(
 /* ---------- loop ---------- */
 function resize(){const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w/h<0.8?55:48;camera.updateProjectionMatrix();
   if(composer){composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(w,h);}}
-addEventListener('resize',resize);resize();
+// Re-measure whenever the play area changes size. On iOS the resize event can arrive before the
+// new size is laid out, so check again on the next frame and shortly after, and watch the element itself.
+function reflow(){resize();requestAnimationFrame(resize);setTimeout(resize,300);}
+addEventListener('resize',reflow);addEventListener('orientationchange',reflow);
+if(window.visualViewport)visualViewport.addEventListener('resize',reflow);
+if(window.ResizeObserver)new ResizeObserver(()=>resize()).observe(host);
+resize();
 const camPos=new THREE.Vector3(0,14,16),camLook=new THREE.Vector3(0,0,2);
 const HELP_ICONS=['🖨️','❔'];
 NOISE_MODE['😤']='talk';
